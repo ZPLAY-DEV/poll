@@ -1,7 +1,7 @@
 // 투표 제목·설명·선택지는 이 파일만 수정하면 됩니다. (10~15개 권장)
 export const poll = {
   title: "강사플랫폼 브랜드명 투표",
-  description: "가장 마음에 드는 브랜드명 하나를 골라 주세요. 다시 제출하면 이전 투표가 바뀝니다.",
+  description: "가장 마음에 드는 브랜드명 하나를 골라 주세요.",
   options: [
     { id: "ssamitzy", label: "쌤잇지", note: "ssamitzy.com" },
     { id: "samitda", label: "쌤잇다", note: "samitda.com" },
