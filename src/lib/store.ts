@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 
-export type Vote = { name: string; optionId: string; at: number };
+export type Vote = { optionId: string; at: number };
 
 export type Store = {
   /** true when votes survive across server instances (Redis). */

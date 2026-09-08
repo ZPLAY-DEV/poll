@@ -2,12 +2,11 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import type { Tally } from "@/lib/tally";
-import { randomAnimal } from "@/lib/animals";
 
 type PollData = {
   poll: { title: string; description: string; options: readonly { id: string; label: string; note?: string }[] };
   tally: Tally;
-  myVote: { name: string; optionId: string } | null;
+  myVote: { optionId: string } | null;
 };
 
 function Stamp() {
@@ -23,7 +22,6 @@ function Stamp() {
 
 export default function Ballot() {
   const [data, setData] = useState<PollData | null>(null);
-  const [name, setName] = useState("");
   const [choice, setChoice] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +31,7 @@ export default function Ballot() {
       .then((r) => r.json())
       .then((d: PollData) => {
         setData(d);
-        if (d.myVote) {
-          setName(d.myVote.name);
-          setChoice(d.myVote.optionId);
-        } else {
-          setName(randomAnimal());
-        }
+        if (d.myVote) setChoice(d.myVote.optionId);
       })
       .catch(() => setError("투표 정보를 불러오지 못했습니다. 새로고침해 주세요."));
   }, []);
@@ -54,7 +47,7 @@ export default function Ballot() {
     const res = await fetch("/api/poll", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, optionId: choice }),
+      body: JSON.stringify({ optionId: choice }),
     });
     const body = await res.json();
     if (!res.ok) {
@@ -86,20 +79,6 @@ export default function Ballot() {
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">{poll.description}</p>
         </header>
-
-        <div className="border-b border-ink px-6 py-4 sm:px-8">
-          <label className="flex items-baseline gap-4">
-            <span className="w-14 shrink-0 text-sm font-medium">이름</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={30}
-              required
-              placeholder="이름"
-              className="min-w-0 flex-1 border-b border-rule bg-transparent py-1 text-base outline-none placeholder:text-muted/50 focus:border-ink"
-            />
-          </label>
-        </div>
 
         <fieldset>
           <legend className="sr-only">선택지</legend>

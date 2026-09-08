@@ -2,8 +2,8 @@
 
 10~15개 선택지 중 하나를 고르는 사내 단일 선택 투표 앱. Next.js 16 + Upstash Redis, Vercel 배포용.
 
-- 이름 입력 후 기표란을 눌러 투표. 브라우저 쿠키로 1인 1표, 다시 제출하면 이전 표가 바뀝니다.
-- 개표 현황은 실시간 집계(투표자 이름은 표시하지 않음).
+- 기표란을 눌러 투표. 브라우저 쿠키로 1인 1표, 다시 제출하면 이전 표가 바뀝니다.
+- 개표 현황은 실시간 집계(익명).
 
 ## 선택지 바꾸기
 
@@ -39,5 +39,5 @@ curl -X DELETE -H "x-admin-token: $ADMIN_TOKEN" https://<배포주소>/api/poll
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
 | GET | `/api/poll` | 선택지, 집계, 내 투표 |
-| POST | `/api/poll` | `{ "name": "...", "optionId": "..." }` |
+| POST | `/api/poll` | `{ "optionId": "..." }` |
 | DELETE | `/api/poll` | 전체 초기화 (`x-admin-token` 헤더 필요) |

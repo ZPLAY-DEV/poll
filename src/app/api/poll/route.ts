@@ -14,7 +14,7 @@ async function payload(voterId: string | undefined) {
   return {
     poll: { title: poll.title, description: poll.description, options: poll.options },
     tally: tally(votes, poll.options),
-    myVote: mine ? { name: mine.name, optionId: mine.optionId } : null,
+    myVote: mine ? { optionId: mine.optionId } : null,
     persistent: store.persistent,
   };
 }
