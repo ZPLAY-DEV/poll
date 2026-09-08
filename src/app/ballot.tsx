@@ -7,7 +7,6 @@ type PollData = {
   poll: { title: string; description: string; options: readonly { id: string; label: string; note?: string }[] };
   tally: Tally;
   myVote: { name: string; optionId: string } | null;
-  persistent: boolean;
 };
 
 function Stamp() {
@@ -68,17 +67,11 @@ export default function Ballot() {
     return <p className="text-muted">{error ?? "불러오는 중…"}</p>;
   }
 
-  const { poll, tally, myVote, persistent } = data;
+  const { poll, tally, myVote } = data;
   const max = Math.max(1, ...tally.counts.map((c) => c.count));
 
   return (
     <div className="w-full max-w-xl">
-      {!persistent && (
-        <p className="mb-4 rounded border border-stamp/40 bg-stamp/5 px-3 py-2 text-sm text-stamp">
-          저장소가 연결되지 않아 투표가 서버 재시작 시 사라집니다. Vercel에 Upstash Redis를 연결해 주세요.
-        </p>
-      )}
-
       <form
         onSubmit={submit}
         className="border border-ink bg-paper shadow-[0_1px_0_#fff_inset,0_12px_30px_-18px_rgba(27,42,65,.5)]"
