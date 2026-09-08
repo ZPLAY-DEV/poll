@@ -96,6 +96,7 @@ export default function Ballot() {
   }
 
   const { poll, tally, myVote } = data;
+  const locked = myVote !== null;
   const max = Math.max(1, ...tally.counts.map((c) => c.count));
 
   return (
@@ -127,12 +128,13 @@ export default function Ballot() {
                   key={o.id}
                   className="grid grid-cols-[3rem_1fr_4.5rem] border-b border-rule last:border-b-0 sm:grid-cols-[4rem_1fr_5rem]"
                 >
-                  <label className="contents cursor-pointer">
+                  <label className={locked ? "contents" : "contents cursor-pointer"}>
                     <input
                       type="radio"
                       name="option"
                       value={o.id}
                       checked={selected}
+                      disabled={locked}
                       onChange={() => {
                         setChoice(o.id);
                         setError(null);
@@ -187,24 +189,28 @@ export default function Ballot() {
         )}
 
         <footer className="flex flex-wrap items-center gap-3 border-t border-ink px-6 py-4 sm:px-8">
-          <button
-            type="submit"
-            disabled={status === "saving" || confirming}
-            className="bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/90 disabled:opacity-60"
-          >
-            {status === "saving" ? "저장 중…" : myVote ? "다시 투표하기" : "투표하기"}
-          </button>
-          <span className="text-sm text-muted" role="status" aria-live="polite">
-            {error
-              ? <span className="text-stamp">{error}</span>
-              : status === "saved"
-                ? "투표했습니다."
-                : status === "declined"
-                  ? "Good...."
-                : myVote
-                  ? `현재 ${poll.options.find((o) => o.id === myVote.optionId)?.label ?? "?"}에 투표되어 있습니다.`
-                  : null}
-          </span>
+          {locked ? (
+            <span className="text-sm font-medium" role="status">
+              투표했습니다. 참여해 주셔서 감사합니다.
+            </span>
+          ) : (
+            <>
+              <button
+                type="submit"
+                disabled={status === "saving" || confirming}
+                className="bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/90 disabled:opacity-60"
+              >
+                {status === "saving" ? "저장 중…" : "투표하기"}
+              </button>
+              <span className="text-sm text-muted" role="status" aria-live="polite">
+                {error ? (
+                  <span className="text-stamp">{error}</span>
+                ) : status === "declined" ? (
+                  "Good...."
+                ) : null}
+              </span>
+            </>
+          )}
         </footer>
       </form>
 
