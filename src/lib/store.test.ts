@@ -20,3 +20,21 @@ describe("memory store", () => {
     expect(await store.getVotes()).toEqual({});
   });
 });
+
+import { createClient } from "@libsql/client";
+import { createTursoStore } from "./store";
+
+describe("turso store (in-memory libsql)", () => {
+  it("upserts per voter and survives clear", async () => {
+    const store = createTursoStore(createClient({ url: ":memory:" }));
+    await store.setVote("u1", { optionId: "a", at: 1 });
+    await store.setVote("u1", { optionId: "b", at: 2 });
+    await store.setVote("u2", { optionId: "a", at: 3 });
+    expect(await store.getVotes()).toEqual({
+      u1: { optionId: "b", at: 2 },
+      u2: { optionId: "a", at: 3 },
+    });
+    await store.clear();
+    expect(await store.getVotes()).toEqual({});
+  });
+});

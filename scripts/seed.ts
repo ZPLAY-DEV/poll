@@ -1,5 +1,5 @@
 // 지정한 표를 저장소에 등록합니다. 같은 voter_id 로 다시 실행하면 덮어쓰므로 여러 번 실행해도 중복되지 않습니다.
-// 사용: vercel env pull .env.local && npm run seed
+// 사용: .env.local 에 TURSO_DATABASE_URL, TURSO_AUTH_TOKEN 설정 후 npm run seed
 import { getStore } from "../src/lib/store";
 
 const SEED: { optionId: string; count: number }[] = [
@@ -14,7 +14,7 @@ try {
 async function main() {
   const store = getStore();
   if (!store.persistent) {
-    console.error("DATABASE_URL / POSTGRES_URL / KV_REST_API_* 가 없습니다. `vercel env pull .env.local` 을 먼저 실행하세요.");
+    console.error("TURSO_DATABASE_URL 이 없습니다. .env.local 을 확인하세요.");
     process.exit(1);
   }
   for (const { optionId, count } of SEED) {

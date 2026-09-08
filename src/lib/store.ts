@@ -1,10 +1,9 @@
-import { Redis } from "@upstash/redis";
-import { Pool } from "pg";
+import { createClient, type Client } from "@libsql/client";
 
 export type Vote = { optionId: string; at: number };
 
 export type Store = {
-  /** true when votes survive across server instances (Redis). */
+  /** true when votes survive across server instances (Turso). */
   persistent: boolean;
   getVotes(): Promise<Record<string, Vote>>;
   setVote(voterId: string, vote: Vote): Promise<void>;
@@ -27,76 +26,46 @@ export function createMemoryStore(): Store {
   };
 }
 
-const KEY = "poll:votes";
-
-function createRedisStore(redis: Redis): Store {
-  return {
-    persistent: true,
-    async getVotes() {
-      return (await redis.hgetall<Record<string, Vote>>(KEY)) ?? {};
-    },
-    async setVote(voterId, vote) {
-      await redis.hset(KEY, { [voterId]: vote });
-    },
-    async clear() {
-      await redis.del(KEY);
-    },
-  };
-}
-
-// Postgres (Vercel Marketplace 의 Neon/Supabase 등은 DATABASE_URL 또는 POSTGRES_URL 을 주입합니다.)
-function createPostgresStore(pool: Pool): Store {
-  const ready = pool.query(
-    "CREATE TABLE IF NOT EXISTS votes (voter_id TEXT PRIMARY KEY, option_id TEXT NOT NULL, at BIGINT NOT NULL)",
+export function createTursoStore(client: Client): Store {
+  const ready = client.execute(
+    "CREATE TABLE IF NOT EXISTS votes (voter_id TEXT PRIMARY KEY, option_id TEXT NOT NULL, at INTEGER NOT NULL)",
   );
   return {
     persistent: true,
     async getVotes() {
       await ready;
-      const { rows } = await pool.query<{ voter_id: string; option_id: string; at: string }>(
-        "SELECT voter_id, option_id, at FROM votes",
-      );
+      const { rows } = await client.execute("SELECT voter_id, option_id, at FROM votes");
       const votes: Record<string, Vote> = {};
-      for (const r of rows) votes[r.voter_id] = { optionId: r.option_id, at: Number(r.at) };
+      for (const r of rows) votes[String(r.voter_id)] = { optionId: String(r.option_id), at: Number(r.at) };
       return votes;
     },
     async setVote(voterId, vote) {
       await ready;
-      await pool.query(
-        "INSERT INTO votes (voter_id, option_id, at) VALUES ($1, $2, $3) ON CONFLICT (voter_id) DO UPDATE SET option_id = EXCLUDED.option_id, at = EXCLUDED.at",
-        [voterId, vote.optionId, vote.at],
-      );
+      await client.execute({
+        sql: "INSERT INTO votes (voter_id, option_id, at) VALUES (?, ?, ?) ON CONFLICT (voter_id) DO UPDATE SET option_id = excluded.option_id, at = excluded.at",
+        args: [voterId, vote.optionId, vote.at],
+      });
     },
     async clear() {
       await ready;
-      await pool.query("DELETE FROM votes");
+      await client.execute("DELETE FROM votes");
     },
   };
 }
 
-function postgresFromEnv(): Pool | null {
-  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
-  return url ? new Pool({ connectionString: url, max: 3 }) : null;
-}
-
-// Vercel Marketplace(Upstash) 은 KV_REST_API_*, Upstash 직접 연결은 UPSTASH_REDIS_REST_* 를 씁니다.
-function redisFromEnv(): Redis | null {
-  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? new Redis({ url, token }) : null;
+// Turso: TURSO_DATABASE_URL (libsql://...) + TURSO_AUTH_TOKEN. 로컬 테스트는 file:local.db 도 가능.
+function tursoFromEnv(): Client | null {
+  const url = process.env.TURSO_DATABASE_URL;
+  if (!url) return null;
+  return createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN });
 }
 
 const globalForStore = globalThis as unknown as { __pollStore?: Store };
 
 export function getStore(): Store {
   if (!globalForStore.__pollStore) {
-    const pg = postgresFromEnv();
-    const redis = pg ? null : redisFromEnv();
-    globalForStore.__pollStore = pg
-      ? createPostgresStore(pg)
-      : redis
-        ? createRedisStore(redis)
-        : createMemoryStore();
+    const turso = tursoFromEnv();
+    globalForStore.__pollStore = turso ? createTursoStore(turso) : createMemoryStore();
   }
   return globalForStore.__pollStore;
 }
