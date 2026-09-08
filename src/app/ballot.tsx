@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import type { Tally } from "@/lib/tally";
+import { randomAnimal } from "@/lib/animals";
 
 type PollData = {
   poll: { title: string; description: string; options: readonly { id: string; label: string; note?: string }[] };
@@ -35,6 +36,8 @@ export default function Ballot() {
         if (d.myVote) {
           setName(d.myVote.name);
           setChoice(d.myVote.optionId);
+        } else {
+          setName(randomAnimal());
         }
       })
       .catch(() => setError("투표 정보를 불러오지 못했습니다. 새로고침해 주세요."));
@@ -92,7 +95,7 @@ export default function Ballot() {
               onChange={(e) => setName(e.target.value)}
               maxLength={30}
               required
-              placeholder="홍길동"
+              placeholder="이름"
               className="min-w-0 flex-1 border-b border-rule bg-transparent py-1 text-base outline-none placeholder:text-muted/50 focus:border-ink"
             />
           </label>
