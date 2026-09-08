@@ -9,6 +9,22 @@ type PollData = {
   myVote: { optionId: string } | null;
 };
 
+const TRACE_KEY = "poll:voted";
+
+function hasVotedBefore(): boolean {
+  try {
+    return localStorage.getItem(TRACE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function leaveTrace() {
+  try {
+    localStorage.setItem(TRACE_KEY, "1");
+  } catch {}
+}
+
 function Stamp() {
   return (
     <span
@@ -23,8 +39,9 @@ function Stamp() {
 export default function Ballot() {
   const [data, setData] = useState<PollData | null>(null);
   const [choice, setChoice] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "declined">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     fetch("/api/poll")
@@ -36,14 +53,23 @@ export default function Ballot() {
       .catch(() => setError("투표 정보를 불러오지 못했습니다. 새로고침해 주세요."));
   }, []);
 
-  async function submit(e: FormEvent) {
+  function submit(e: FormEvent) {
     e.preventDefault();
     if (!choice) {
       setError("기표란을 눌러 한 곳을 골라 주세요.");
       return;
     }
-    setStatus("saving");
     setError(null);
+    if (hasVotedBefore()) {
+      setConfirming(true);
+      return;
+    }
+    void sendVote();
+  }
+
+  async function sendVote() {
+    setConfirming(false);
+    setStatus("saving");
     const res = await fetch("/api/poll", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,8 +81,14 @@ export default function Ballot() {
       setStatus("idle");
       return;
     }
+    leaveTrace();
     setData(body);
     setStatus("saved");
+  }
+
+  function decline() {
+    setConfirming(false);
+    setStatus("declined");
   }
 
   if (!data) {
@@ -104,7 +136,7 @@ export default function Ballot() {
                       onChange={() => {
                         setChoice(o.id);
                         setError(null);
-                        if (status === "saved") setStatus("idle");
+                        if (status !== "idle") setStatus("idle");
                       }}
                       className="peer sr-only"
                     />
@@ -125,10 +157,39 @@ export default function Ballot() {
           </ul>
         </fieldset>
 
+        {confirming && (
+          <div
+            role="alertdialog"
+            aria-labelledby="revote-q"
+            className="border-t border-ink bg-ink/5 px-6 py-5 sm:px-8"
+          >
+            <p id="revote-q" className="font-display text-lg font-bold leading-snug">
+              하늘을 우러러 정말로 이러실 겁니까?
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => void sendVote()}
+                className="bg-stamp px-5 py-2 text-sm font-medium text-paper hover:bg-stamp/90"
+              >
+                네
+              </button>
+              <button
+                type="button"
+                onClick={decline}
+                autoFocus
+                className="border border-ink px-5 py-2 text-sm font-medium hover:bg-ink/5"
+              >
+                아니오
+              </button>
+            </div>
+          </div>
+        )}
+
         <footer className="flex flex-wrap items-center gap-3 border-t border-ink px-6 py-4 sm:px-8">
           <button
             type="submit"
-            disabled={status === "saving"}
+            disabled={status === "saving" || confirming}
             className="bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/90 disabled:opacity-60"
           >
             {status === "saving" ? "저장 중…" : myVote ? "다시 투표하기" : "투표하기"}
@@ -138,6 +199,8 @@ export default function Ballot() {
               ? <span className="text-stamp">{error}</span>
               : status === "saved"
                 ? "투표했습니다."
+                : status === "declined"
+                  ? "Good...."
                 : myVote
                   ? `현재 ${poll.options.find((o) => o.id === myVote.optionId)?.label ?? "?"}에 투표되어 있습니다.`
                   : null}
