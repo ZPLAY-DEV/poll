@@ -3,19 +3,17 @@ export const poll = {
   title: "강사플랫폼 브랜드명 투표",
   description: "가장 마음에 드는 브랜드명 하나를 골라 주세요. 다시 제출하면 이전 투표가 바뀝니다.",
   options: [
-    { id: "jeju", label: "제주" },
-    { id: "busan", label: "부산" },
-    { id: "gangneung", label: "강릉" },
-    { id: "sokcho", label: "속초" },
-    { id: "yeosu", label: "여수" },
-    { id: "gyeongju", label: "경주" },
-    { id: "jeonju", label: "전주" },
-    { id: "tongyeong", label: "통영" },
-    { id: "chuncheon", label: "춘천" },
-    { id: "pohang", label: "포항" },
-    { id: "damyang", label: "담양" },
-    { id: "ulleung", label: "울릉도" },
+    { id: "ssamitzy", label: "쌤잇지", note: "ssamitzy.com" },
+    { id: "samitda", label: "쌤잇다", note: "samitda.com" },
+    { id: "ssamhub", label: "쌤허브", note: "ssamhub.com" },
+    { id: "samz", label: "쌤즈", note: "samz.kr" },
+    { id: "zacademy", label: "제트아카데미", note: "zacademy.kr" },
+    { id: "z-on", label: "제트온", note: "z-on.kr" },
+    { id: "z-teacher", label: "제트티쳐", note: "z-teacher.com" },
+    { id: "z-class", label: "제트클래스", note: "z-class.kr" },
+    { id: "teacherlink", label: "티쳐링크", note: "teacherlink.kr" },
+    { id: "ohmyssam", label: "오마이쌤", note: "ohmyssam.com" },
   ],
 } as const;
 
-export type PollOption = { id: string; label: string };
+export type PollOption = { id: string; label: string; note?: string };

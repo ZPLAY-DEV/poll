@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { Tally } from "@/lib/tally";
 
 type PollData = {
-  poll: { title: string; description: string; options: readonly { id: string; label: string }[] };
+  poll: { title: string; description: string; options: readonly { id: string; label: string; note?: string }[] };
   tally: Tally;
   myVote: { name: string; optionId: string } | null;
   persistent: boolean;
@@ -136,8 +136,9 @@ export default function Ballot() {
                     <span className="flex items-center justify-center border-r border-ink font-mono text-sm">
                       {i + 1}
                     </span>
-                    <span className="flex items-center px-4 py-3 text-base font-medium peer-focus-visible:bg-ink/5">
-                      {o.label}
+                    <span className="flex flex-wrap items-baseline gap-x-3 px-4 py-3 peer-focus-visible:bg-ink/5">
+                      <span className="text-base font-medium">{o.label}</span>
+                      {o.note && <span className="font-mono text-xs text-muted">{o.note}</span>}
                     </span>
                     <span className="flex items-center justify-center border-l border-ink py-2 peer-focus-visible:outline-2 peer-focus-visible:outline-ink peer-focus-visible:-outline-offset-2">
                       {selected && <Stamp />}
