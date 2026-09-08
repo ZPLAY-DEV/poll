@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { Pool } from "pg";
 
 export type Vote = { optionId: string; at: number };
 
@@ -43,6 +44,41 @@ function createRedisStore(redis: Redis): Store {
   };
 }
 
+// Postgres (Vercel Marketplace 의 Neon/Supabase 등은 DATABASE_URL 또는 POSTGRES_URL 을 주입합니다.)
+function createPostgresStore(pool: Pool): Store {
+  const ready = pool.query(
+    "CREATE TABLE IF NOT EXISTS votes (voter_id TEXT PRIMARY KEY, option_id TEXT NOT NULL, at BIGINT NOT NULL)",
+  );
+  return {
+    persistent: true,
+    async getVotes() {
+      await ready;
+      const { rows } = await pool.query<{ voter_id: string; option_id: string; at: string }>(
+        "SELECT voter_id, option_id, at FROM votes",
+      );
+      const votes: Record<string, Vote> = {};
+      for (const r of rows) votes[r.voter_id] = { optionId: r.option_id, at: Number(r.at) };
+      return votes;
+    },
+    async setVote(voterId, vote) {
+      await ready;
+      await pool.query(
+        "INSERT INTO votes (voter_id, option_id, at) VALUES ($1, $2, $3) ON CONFLICT (voter_id) DO UPDATE SET option_id = EXCLUDED.option_id, at = EXCLUDED.at",
+        [voterId, vote.optionId, vote.at],
+      );
+    },
+    async clear() {
+      await ready;
+      await pool.query("DELETE FROM votes");
+    },
+  };
+}
+
+function postgresFromEnv(): Pool | null {
+  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+  return url ? new Pool({ connectionString: url, max: 3 }) : null;
+}
+
 // Vercel Marketplace(Upstash) 은 KV_REST_API_*, Upstash 직접 연결은 UPSTASH_REDIS_REST_* 를 씁니다.
 function redisFromEnv(): Redis | null {
   const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
@@ -54,8 +90,13 @@ const globalForStore = globalThis as unknown as { __pollStore?: Store };
 
 export function getStore(): Store {
   if (!globalForStore.__pollStore) {
-    const redis = redisFromEnv();
-    globalForStore.__pollStore = redis ? createRedisStore(redis) : createMemoryStore();
+    const pg = postgresFromEnv();
+    const redis = pg ? null : redisFromEnv();
+    globalForStore.__pollStore = pg
+      ? createPostgresStore(pg)
+      : redis
+        ? createRedisStore(redis)
+        : createMemoryStore();
   }
   return globalForStore.__pollStore;
 }
